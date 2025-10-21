@@ -16,8 +16,9 @@ COPY . .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port Streamlit will run on
+# Expose the port (Render sets PORT dynamically)
+ENV PORT=8080
 EXPOSE $PORT
 
-# Run the Streamlit app
-CMD ["streamlit", "run", "app.py", "--server.port=$PORT", "--server.address=0.0.0.0"]
+# Run the Streamlit app, using the PORT environment variable
+CMD ["sh", "-c", "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0"]
