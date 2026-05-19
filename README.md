@@ -1,9 +1,17 @@
----
-title: Standard Bank CSV Converter
-emoji: 📄
-colorFrom: green
-colorTo: blue
-sdk: streamlit
-app_file: app.py
-pinned: false
----
+# Bank Statement Converter
+
+Upload scanned or exported PDF bank statements and convert them into clean CSV files.
+
+## Features
+
+- OCR support
+- Scanned PDF support
+- Clean CSV exports
+- Debit and credit detection
+- Transaction preview
+- Streamlit deployment ready
+
+## Installation
+
+```bash
+pip install -r requirements.txt
