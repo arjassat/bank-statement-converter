@@ -54,6 +54,7 @@ def clean_amount(raw_amount):
         raw_amount = raw_amount[1:]
 
     try:
+
         value = float(raw_amount)
 
         if negative:
@@ -68,6 +69,7 @@ def clean_amount(raw_amount):
 def clean_description(text):
 
     text = re.sub(r'\b\d{2}:\d{2}(?::\d{2})?\b', '', text)
+
     text = re.sub(r'\b\d{4}\*\d{4}\b', '', text)
 
     text = re.sub(r'[^A-Za-z0-9\s\-/&.@#]', ' ', text)
@@ -76,8 +78,8 @@ def clean_description(text):
 
     text = text.strip()
 
+    # Prevent giant OCR garbage descriptions
     words = text.split()
-
     text = ' '.join(words[:10])
 
     return text
@@ -95,6 +97,7 @@ def is_noise(line):
         'CUSTOMER CARE',
         'PAGE',
         'REGISTERED CREDIT PROVIDER',
+        'STANDARD BANK',
     ]
 
     upper = line.upper()
@@ -103,7 +106,7 @@ def is_noise(line):
 
 
 # ============================================================
-# MAIN OCR PARSER
+# MAIN PARSER
 # ============================================================
 
 def parse_statement(pdf_bytes):
@@ -159,29 +162,30 @@ def parse_statement(pdf_bytes):
             if amounts and dates:
 
                 # ====================================================
-# SMART TRANSACTION AMOUNT DETECTION
-# ====================================================
+                # SMART AMOUNT DETECTION
+                # ====================================================
 
-amount_raw = None
+                amount_raw = None
 
-# Debit transaction
-for amt in amounts:
-    if amt.endswith('-'):
-        amount_raw = amt
-        break
+                # Debit transaction
+                for amt in amounts:
 
-# Credit transaction
-if amount_raw is None:
+                    if amt.endswith('-'):
+                        amount_raw = amt
+                        break
 
-    # Usually:
-    # second-last amount = transaction
-    # last amount = running balance
+                # Credit transaction
+                if amount_raw is None:
 
-    if len(amounts) >= 2:
-        amount_raw = amounts[-2]
+                    # Usually:
+                    # second-last amount = transaction
+                    # last amount = running balance
 
-    else:
-        amount_raw = amounts[0]
+                    if len(amounts) >= 2:
+                        amount_raw = amounts[-2]
+
+                    else:
+                        amount_raw = amounts[0]
 
                 amount = clean_amount(amount_raw)
 
@@ -203,17 +207,29 @@ if amount_raw is None:
 
                 description = line
 
+                # Remove dates
                 for d in dates:
+
                     description = description.replace(
                         f'{d[0]} {d[1]}',
                         ''
                     )
 
+                # Remove amounts
                 for amt in amounts:
-                    description = description.replace(amt, '')
 
+                    description = description.replace(
+                        amt,
+                        ''
+                    )
+
+                # Merge wrapped description
                 if pending_description:
-                    description = pending_description + ' ' + description
+
+                    description = (
+                        pending_description + ' ' + description
+                    )
+
                     pending_description = ''
 
                 description = clean_description(description)
@@ -230,7 +246,7 @@ if amount_raw is None:
             else:
 
                 # ====================================================
-                # WRAPPED DESCRIPTION
+                # POSSIBLE WRAPPED DESCRIPTION
                 # ====================================================
 
                 cleaned = clean_description(line)
@@ -252,10 +268,11 @@ if amount_raw is None:
                 pending_description = cleaned
 
     # ============================================================
-    # DATAFRAME CLEANUP
+    # FINAL CLEANUP
     # ============================================================
 
     if not transactions:
+
         return pd.DataFrame(
             columns=['Date', 'Description', 'Amount']
         )
@@ -337,4 +354,7 @@ if uploaded_file:
 
             except Exception as e:
 
+                st.error(
+                    f'Error processing PDF: {str(e)}'
+                )
                 st.error(f'Error processing PDF: {str(e)}')
