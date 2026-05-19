@@ -158,7 +158,30 @@ def parse_statement(pdf_bytes):
 
             if amounts and dates:
 
-                amount_raw = amounts[0]
+                # ====================================================
+# SMART TRANSACTION AMOUNT DETECTION
+# ====================================================
+
+amount_raw = None
+
+# Debit transaction
+for amt in amounts:
+    if amt.endswith('-'):
+        amount_raw = amt
+        break
+
+# Credit transaction
+if amount_raw is None:
+
+    # Usually:
+    # second-last amount = transaction
+    # last amount = running balance
+
+    if len(amounts) >= 2:
+        amount_raw = amounts[-2]
+
+    else:
+        amount_raw = amounts[0]
 
                 amount = clean_amount(amount_raw)
 
